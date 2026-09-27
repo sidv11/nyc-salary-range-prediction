@@ -1,0 +1,3 @@
+Target,R2,MAE ($),RMSE ($)
+Salary From Annual,0.626,11153.587,21075.07
+Salary To Annual,0.735,13445.426,21480.887
