@@ -1,79 +1,185 @@
 # NYC Job Salary Range Prediction
 
+🔗 **Live Demo:** [NYC Salary Range Predictor](https://nyc-salary-range-prediction.streamlit.app/)
+
 Predicting the minimum and maximum salary for a New York City government job posting, using only the details available in the posting itself — no negotiated figures, no insider information, just what a job listing already says about the role.
+
+## 🚀 Live Demo
+
+Try the deployed Streamlit application:
+
+👉 **[Open NYC Salary Range Predictor](https://nyc-salary-range-prediction.streamlit.app/)**
+
+Enter details from an NYC government job posting and the model will estimate its annual salary range.
+
+---
 
 ## Explained simply
 
-When a company posts a job, they usually already have a salary range in mind before anyone applies. This project builds a model that guesses that range on its own, just by reading the posting: the job title, which agency is hiring, how senior the role is, and a few other clues. Feed it a new posting it's never seen, and it predicts roughly what the pay range should be.
+When a company posts a job, they usually already have a salary range in mind before anyone applies. This project builds a model that guesses that range on its own, just by reading the posting: the job title, which agency is hiring, how senior the role is, and a few other clues.
+
+Feed it a new posting it has never seen, and it predicts roughly what the pay range should be.
+
+---
 
 ## Problem statement
 
-Given the attributes of a job posting (agency, title, category, career level, and similar fields), predict both `Salary Range From` (the minimum) and `Salary Range To` (the maximum) as two separate regression targets.
+Given the attributes of a job posting — agency, title, category, career level, and similar fields — predict both:
+
+- `Salary Range From` — the minimum salary
+- `Salary Range To` — the maximum salary
+
+These are treated as two separate regression targets.
+
+---
 
 ## Dataset
 
-"Jobs NYC Postings," a real dataset of New York City government job listings. It isn't included in this repository — see `data/README.md` for why and how to get the same, publicly available dataset yourself in a couple of minutes.
+**Jobs NYC Postings** is a real dataset of New York City government job listings.
 
-The raw file had two data-quality problems that had to be fixed before any modeling could start:
+The dataset is not included in this repository. See [`data/README.md`](data/README.md) for why and how to obtain the same publicly available dataset.
 
-- **Duplicate postings.** 2,494 of 5,120 rows shared a Job ID with another row — the same listing reposted internally and externally. Confirmed these were exact reposts, not conflicting records, and kept only the first occurrence of each.
-- **Mixed salary frequency.** Salaries were listed as Annual, Hourly, or Daily, all mixed into the same two numeric columns. Comparing a $22/hour listing directly against a $95,000/year listing would be meaningless, so every salary was annualized onto one consistent scale before anything else happened.
+The raw file had two data-quality problems that had to be fixed before modeling:
 
-After cleaning: **2,615 unique postings** (down from 5,120), plus 23 rows with an unusable zero salary that were dropped rather than guessed at.
+### Duplicate postings
+
+2,494 of 5,120 rows shared a Job ID with another row — the same listing reposted internally and externally.
+
+These were confirmed to be exact reposts rather than conflicting records, so only the first occurrence of each Job ID was retained.
+
+### Mixed salary frequency
+
+Salaries were listed as **Annual, Hourly, or Daily**, all mixed into the same two numeric columns.
+
+Comparing a $22/hour listing directly against a $95,000/year listing would be meaningless, so every salary was annualized onto one consistent scale before modeling.
+
+After cleaning:
+
+- **2,615 unique postings**
+- **23 rows with unusable zero salary dropped**
+- All remaining salary values normalized to an annual scale
+
+---
 
 ## Approach
 
-1. **Clean and normalize** — de-duplicate, annualize mixed salary frequencies, drop unusable rows.
-2. **Explore** — look at the salary distribution, and how pay varies by agency and career level, before deciding what should feed the model.
-3. **Engineer features** — categorical fields (agency, category, career level, civil service title, etc.) plus a couple of cheap text-derived signals (job description length, whether preferred skills were listed) that tend to track seniority.
-4. **Encode carefully** — `Civil Service Title` and `Job Category` have hundreds of distinct values each, too many for one-hot encoding to work well. Used k-fold target encoding instead, so each category is represented by the (smoothed, leakage-safe) average salary for postings like it.
-5. **Compare candidate models** — five model families (Ridge regression up through gradient boosting) trained and compared on the same held-out test set, predicting both salary targets jointly.
-6. **Tune the winner** — XGBoost came out ahead; tuned it separately for each target with `RandomizedSearchCV` (5-fold CV, scored on MAE).
-7. **Evaluate honestly** — final numbers below are from the tuned models on data they never saw during training or tuning.
+### 1. Clean and normalize
+
+- De-duplicate job postings
+- Annualize mixed salary frequencies
+- Remove unusable salary records
+- Standardize the dataset for modeling
+
+### 2. Explore
+
+Analyze:
+
+- Salary distributions
+- Salary differences across agencies
+- Career-level salary patterns
+- Job-category differences
+- Relationships between job characteristics and compensation
+
+### 3. Engineer features
+
+The model uses categorical job-posting information such as:
+
+- Agency
+- Job Category
+- Career Level
+- Level
+- Civil Service Title
+- Title Classification
+- Posting Type
+- Full-Time / Part-Time indicator
+
+It also uses lightweight text-derived features, including:
+
+- Job description word count
+- Minimum qualification word count
+- Whether preferred skills were provided
+- Posting month
+- Number of positions
+
+### 4. Encode carefully
+
+`Civil Service Title` and `Job Category` contain hundreds of distinct values, making straightforward one-hot encoding less practical.
+
+The project therefore uses **smoothed target encoding** to represent high-cardinality categorical variables using salary information while reducing the risk of overfitting and target leakage.
+
+### 5. Compare candidate models
+
+Five model families were evaluated using the same held-out test set, ranging from linear regression approaches to gradient boosting models.
+
+Both salary targets were evaluated separately.
+
+### 6. Tune the winner
+
+**XGBoost** performed best among the evaluated models.
+
+The final models were tuned separately for:
+
+- Minimum salary
+- Maximum salary
+
+Hyperparameter optimization was performed using `RandomizedSearchCV` with 5-fold cross-validation and MAE as the optimization metric.
+
+### 7. Evaluate honestly
+
+The final reported metrics come from the tuned models evaluated on a held-out test set that was not used during model training or hyperparameter tuning.
+
+---
 
 ## Results
 
-Final test-set performance (from `predictions/model_scores.csv`):
+Final test-set performance from [`predictions/model_scores.csv`](predictions/model_scores.csv):
 
 | Target | R² | MAE | RMSE |
-|---|---|---|---|
+|---|---:|---:|---:|
 | Salary Range From (minimum) | 0.653 | $8,156 | $15,208 |
 | Salary Range To (maximum) | 0.799 | $11,443 | $18,801 |
 
-In plain terms: using only what's written in a job posting — no negotiated numbers, no insider access — the model explains about 65% of the variation in the minimum salary and about 80% of the variation in the maximum salary. The gap between the two makes sense: the ceiling of a salary range tends to track a role's official grade/title more tightly, while the floor has more room for negotiation and discretion that isn't visible from posting text alone.
+### In plain terms
 
-Feature importance confirms this lines up with how NYC civil-service pay actually works: title and category dominate, since pay is largely grade-driven rather than free-form.
+Using only information available in a job posting:
 
-## What I'd improve next
+- The model explains approximately **65% of the variation in minimum salary**.
+- The model explains approximately **80% of the variation in maximum salary**.
 
-1. Try a model per agency or job family instead of one global model, since pay structures likely differ meaningfully across, say, uniformed services versus administrative roles.
-2. Bring in external data the client brief explicitly allowed adding — cost-of-living by work location, or public NYC salary/headcount data from other years — to see if it improves the minimum-salary prediction specifically, since that's the weaker of the two targets.
-3. Try quantile regression instead of a plain point estimate, so the output could be "a range we're confident about" rather than a single number.
-4. Revisit the zero-salary rows that were dropped — with more time, it may be possible to recover some of them from related fields instead of discarding them outright.
+The maximum salary target performs better than the minimum salary target.
 
-## Repository layout
+This is consistent with the idea that the upper end of a salary range may be more closely associated with the formal title, grade, and classification of a role, while the lower end can have additional variation that is not directly observable from the posting.
 
-```
-nyc-salary-range-prediction/
-  README.md
-  data/
-    README.md              Why the data folder is mostly empty, and how to get it yourself
-    raw/
-      data_dictionary.txt    Column descriptions (not the data itself)
-    processed/              (empty — populated when you run the notebook)
-  notebook/
-    Salary_Range_Prediction.ipynb
-  models/
-    salary_from_xgb.pkl      Tuned XGBoost model, minimum salary
-    salary_to_xgb.pkl         Tuned XGBoost model, maximum salary
-  predictions/
-    model_scores.csv           Final R² / MAE / RMSE on the held-out test set
-  report/
-    Salary_Range_Prediction_Report.docx   Full written report with charts
-```
+Feature importance also indicates that **title- and category-related information is highly influential**, which is consistent with the structured nature of NYC civil-service compensation.
 
-## How to run
+---
 
-1. Get the dataset — see `data/README.md`.
-2. Install dependencies: `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`, `xgboost`, `lightgbm`.
-3. Open `notebook/Salary_Range_Prediction.ipynb` and run it top to bottom.
+## 🖥️ Streamlit Application
+
+The project includes a Streamlit web application that allows users to interact with the trained models without running the full notebook.
+
+The application accepts information such as:
+
+- Agency
+- Posting type
+- Job category
+- Career level
+- Civil service title
+- Number of positions
+- Job description
+- Minimum qualifications
+- Preferred skills
+- Posting month
+
+It then returns:
+
+**Estimated minimum salary → Estimated maximum salary**
+
+### Example
+
+```text
+Estimated annual salary range
+
+$81,247 – $137,766
+
+Estimated midpoint: $109,507
