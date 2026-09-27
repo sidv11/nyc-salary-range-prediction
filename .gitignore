@@ -1,0 +1,12 @@
+# Client-provided data must not be uploaded publicly — see data/README.md.
+# These paths are excluded even if you later download the public equivalent
+# into your own local copy, so a stray `git add .` can't leak it.
+data/raw/*.csv
+data/raw/*.xlsx
+data/processed/*.csv
+predictions/salary_predictions.csv
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
