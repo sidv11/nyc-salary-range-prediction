@@ -2,7 +2,7 @@
 
 🔗 **Live Demo:** [NYC Salary Range Predictor](https://nyc-salary-range-prediction.streamlit.app/)
 
-Predictin the minimum and maximum salary for a New York City government job posting, using only the details available in the posting itself — no negotiated figures, no insider information, just what a job listing already says about the role.
+Predicting the minimum and maximum salary for a New York City government job posting, using only the details available in the posting itself — no negotiated figures, no insider information, just what a job listing already says about the role.
 
 ## 🚀 Live Demo
 
